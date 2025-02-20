@@ -1,72 +1,99 @@
-repeat wait() until game:IsLoaded()
-local player = game.Players.LocalPlayer
-local character = player.Character
-local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-local tweenService = game:GetService("TweenService")
+local teleportSpeed = 300 -- Tốc độ mặc định
+local selectedIsland = nil
+local seaIslands = {
+    [1] = { "Starter Island", "Jungle", "Pirate Village", "Desert", "Middle Town", "Frozen Village", "Marine Fortress", "Skylands", "Prison", "Colosseum", "Magma Village", "Underwater City", "Fountain City" },
+    [2] = { "Kingdom of Rose", "Cafe", "Usoap's Island", "Green Zone", "Graveyard", "Dark Arena", "Snow Mountain", "Hot and Cold", "Cursed Ship", "Ice Castle", "Forgotten Island" },
+    [3] = { "Port Town", "Hydra Island", "Great Tree", "Floating Turtle", "Castle on the Sea", "Haunted Castle", "Sea of Treats" }
+}
 
--- Hàm teleport an toàn
-local function teleportTo(position)
-    local tweenInfo = TweenInfo.new((humanoidRootPart.Position - position).Magnitude / 300, Enum.EasingStyle.Linear)
-    local tween = tweenService:Create(humanoidRootPart, tweenInfo, {CFrame = CFrame.new(position)})
-    tween:Play()
-    tween.Completed:Wait()
-end
+-- Tạo GUI
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local UICorner = Instance.new("UICorner")
+local Title = Instance.new("TextLabel")
+local Dropdown = Instance.new("TextButton")
+local TeleportButton = Instance.new("TextButton")
+local SpeedSlider = Instance.new("TextBox")
+local OpenButton = Instance.new("ImageButton")
 
--- Tìm NPC farm xương
-local function findBoneNPC()
-    for _, v in pairs(game:GetService("Workspace").Enemies:GetChildren()) do
-        if v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
-            return v
-        end
+ScreenGui.Parent = game.CoreGui
+MainFrame.Parent = ScreenGui
+UICorner.Parent = MainFrame
+Title.Parent = MainFrame
+Dropdown.Parent = MainFrame
+TeleportButton.Parent = MainFrame
+SpeedSlider.Parent = MainFrame
+OpenButton.Parent = ScreenGui
+
+-- Cài đặt GUI
+MainFrame.Size = UDim2.new(0, 300, 0, 200)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -100)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.Visible = false
+
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.BackgroundTransparency = 1
+Title.Text = "Teleport Menu"
+Title.TextSize = 20
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+Dropdown.Size = UDim2.new(1, -20, 0, 30)
+Dropdown.Position = UDim2.new(0, 10, 0, 40)
+Dropdown.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+Dropdown.Text = "Chọn đảo"
+Dropdown.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+TeleportButton.Size = UDim2.new(1, -20, 0, 30)
+TeleportButton.Position = UDim2.new(0, 10, 0, 80)
+TeleportButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+TeleportButton.Text = "Teleport"
+TeleportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+SpeedSlider.Size = UDim2.new(1, -20, 0, 30)
+SpeedSlider.Position = UDim2.new(0, 10, 0, 120)
+SpeedSlider.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+SpeedSlider.Text = tostring(teleportSpeed)
+SpeedSlider.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+OpenButton.Size = UDim2.new(0, 50, 0, 50)
+OpenButton.Position = UDim2.new(0, 10, 0.5, -25)
+OpenButton.Image = "rbxassetid://YOUR_IMAGE_ID"
+
+-- Chọn đảo
+Dropdown.MouseButton1Click:Connect(function()
+    local currentSea = game:GetService("Players").LocalPlayer.Data.Level.Value < 700 and 1 or (game:GetService("Players").LocalPlayer.Data.Level.Value < 1500 and 2 or 3)
+    local list = ""
+    for _, island in ipairs(seaIslands[currentSea]) do
+        list = list .. island .. "\n"
     end
-    return nil
-end
+    selectedIsland = seaIslands[currentSea][math.random(#seaIslands[currentSea])]
+    Dropdown.Text = selectedIsland
+end)
 
--- Bật Haki
-local function enableHaki()
-    local hakiKey = "Z"
-    game:GetService("VirtualInputManager"):SendKeyEvent(true, hakiKey, false, game)
-    wait(0.1)
-    game:GetService("VirtualInputManager"):SendKeyEvent(false, hakiKey, false, game)
-end
-
--- Tự động đánh quái
-local autoFarm = false
-spawn(function()
-    while wait() do
-        if autoFarm then
-            local npc = findBoneNPC()
-            if npc then
-                local npcPos = npc.HumanoidRootPart.Position
-                teleportTo(npcPos + Vector3.new(0, 10, 0)) -- Đứng trên đầu tránh bị đánh
-                enableHaki()
-                wait(0.5)
-                humanoidRootPart.CFrame = CFrame.new(npcPos) -- Dịch chuyển gần NPC
-                wait(0.2)
-                game:GetService("VirtualUser"):CaptureController()
-                game:GetService("VirtualUser"):Button1Down(Vector2.new(0, 0))
-            else
-                teleportTo(Vector3.new(-9500, 300, 6000)) -- Tọa độ đảo có NPC farm xương
-                wait(3)
-            end
-        end
+-- Chỉnh tốc độ
+SpeedSlider.FocusLost:Connect(function()
+    local speed = tonumber(SpeedSlider.Text)
+    if speed and speed > 0 then
+        teleportSpeed = speed
+    else
+        SpeedSlider.Text = tostring(teleportSpeed)
     end
 end)
 
--- Tạo menu UI
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Parent = game.CoreGui
-
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 200, 0, 50)
-button.Position = UDim2.new(0.8, 0, 0.2, 0)
-button.Text = "Bật Auto Farm Xương"
-button.Parent = ScreenGui
-button.MouseButton1Click:Connect(function()
-    autoFarm = not autoFarm
-    if autoFarm then
-        button.Text = "Tắt Auto Farm Xương"
-    else
-        button.Text = "Bật Auto Farm Xương"
+-- Teleport
+TeleportButton.MouseButton1Click:Connect(function()
+    if selectedIsland then
+        local hrp = game.Players.LocalPlayer.Character.HumanoidRootPart
+        local function teleportToIsland(island)
+            hrp.CFrame = CFrame.new(Vector3.new(math.random(-5000, 5000), 100, math.random(-5000, 5000)))
+            wait(1)
+            hrp.CFrame = CFrame.new(Vector3.new(math.random(-5000, 5000), 100, math.random(-5000, 5000)))
+        end
+        teleportToIsland(selectedIsland)
     end
+end)
+
+-- Mở menu
+OpenButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
 end)
